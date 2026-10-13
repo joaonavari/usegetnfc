@@ -22,7 +22,7 @@ e acesse <http://127.0.0.1:8765>.
 
 ## WhatsApp
 
-Número: **+55 (44) 99929-7681**. Troque só `WHATSAPP_NUMBER` em `script.js` (código do país + DDD, só dígitos). Cada botão "Quero esta placa" abre o WhatsApp com uma mensagem já citando a placa e a cor escolhida. O botão verde flutuante aparece depois que o visitante passa do topo e some na seção de contato.
+Número: **+55 (44) 99958-2080**. Troque só `WHATSAPP_NUMBER` em `script.js` (código do país + DDD, só dígitos). Cada botão "Quero esta placa" abre o WhatsApp com uma mensagem já citando a placa e a cor escolhida. O botão verde flutuante aparece depois que o visitante passa do topo e some na seção de contato.
 
 ## Instagram
 

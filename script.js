@@ -2,7 +2,7 @@
   'use strict';
 
   // Edit this one value to change every WhatsApp link on the page.
-  const WHATSAPP_NUMBER = '5544999297681';
+  const WHATSAPP_NUMBER = '5544999582080';
   const WHATSAPP_MESSAGES = Object.freeze({
     general: 'Olá! Vim pelo site da USEGET e gostaria de saber mais sobre as placas NFC.',
     quantidade: 'Olá! Vim pelo site da USEGET e gostaria de consultar as condições para um pedido em quantidade.'
