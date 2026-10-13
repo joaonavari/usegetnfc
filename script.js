@@ -8,6 +8,11 @@
     quantidade: 'Olá! Vim pelo site da USEGET e gostaria de consultar as condições para um pedido em quantidade.'
   });
   const validNumber = /^55[1-9]\d\d{8,9}$/.test(WHATSAPP_NUMBER);
+  // Outside DDDs 11-19, 21, 22, 24, 27 and 28, WhatsApp registers mobile numbers
+  // without the leading 9, and wa.me fails to find the account when it is present.
+  const WHATSAPP_LINK_NUMBER = /^55(1[1-9]|2[1247-8])/.test(WHATSAPP_NUMBER)
+    ? WHATSAPP_NUMBER
+    : WHATSAPP_NUMBER.replace(/^(55\d{2})9(\d{8})$/, '$1$2');
 
   function productMessage(product, variant) {
     const color = product.variantes.length > 1 ? ` (${variant.nome})` : '';
@@ -15,7 +20,7 @@
   }
 
   function whatsappUrl(message) {
-    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+    return `https://wa.me/${WHATSAPP_LINK_NUMBER}?text=${encodeURIComponent(message)}`;
   }
 
   function initialize() {
