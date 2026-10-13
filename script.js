@@ -4,24 +4,209 @@
   // Edit this one value to change every WhatsApp link on the page.
   const WHATSAPP_NUMBER = '5544999297681';
   const WHATSAPP_MESSAGES = Object.freeze({
-    general: 'Olá! Vim pelo site da USEGET e gostaria de saber mais sobre as placas de avaliação no Google.',
-    azul: 'Olá! Vim pelo site da USEGET e tenho interesse no modelo Azul. Pode me informar o valor e as condições de entrega?',
-    preto: 'Olá! Vim pelo site da USEGET e tenho interesse no modelo Preto. Pode me informar o valor e as condições de entrega?'
+    general: 'Olá! Vim pelo site da USEGET e gostaria de saber mais sobre as placas NFC.',
+    quantidade: 'Olá! Vim pelo site da USEGET e gostaria de consultar as condições para um pedido em quantidade.'
   });
+  const validNumber = /^55[1-9]\d\d{8,9}$/.test(WHATSAPP_NUMBER);
+
+  function productMessage(product, variant) {
+    const color = product.variantes.length > 1 ? ` (${variant.nome})` : '';
+    return `Olá! Vim pelo site da USEGET e tenho interesse na placa ${product.nome}${color}. Pode me passar valores e condições?`;
+  }
+
+  function whatsappUrl(message) {
+    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  }
 
   function initialize() {
     document.documentElement.classList.add('js');
+    renderProducts();
     configureContact();
     configureMenu();
     configureHeader();
+    configureFloatingButton();
+    configureSetup();
     configureMotion();
   }
 
-  function configureContact() {
-    const validNumber = /^55[1-9]\d\d{8,9}$/.test(WHATSAPP_NUMBER);
+  function imageSources(name) {
+    const base = `assets/images/produtos/${name}`;
+    return {
+      src: `${base}-600.webp`,
+      srcset: `${base}-600.webp 600w, ${base}-1143.webp 1143w`
+    };
+  }
 
+  function renderProducts() {
+    const grid = document.getElementById('products-grid');
+    const filters = document.getElementById('product-filters');
+    const products = Array.isArray(window.USEGET_PRODUTOS) ? window.USEGET_PRODUTOS : [];
+    const categories = window.USEGET_CATEGORIAS || {};
+    if (!grid || !products.length) return;
+
+    products.forEach((product) => {
+      let current = product.variantes[0];
+      const card = document.createElement('article');
+      card.className = 'product reveal';
+      card.dataset.reveal = '';
+      card.dataset.category = product.categoria;
+
+      const media = document.createElement('div');
+      media.className = 'product-media';
+      const img = document.createElement('img');
+      img.width = 1143;
+      img.height = 846;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.sizes = '(max-width: 760px) calc(100vw - 40px), 560px';
+      media.append(img);
+
+      const body = document.createElement('div');
+      body.className = 'product-body';
+
+      const tag = document.createElement('p');
+      tag.className = 'product-tag';
+      tag.textContent = categories[product.categoria] || '';
+
+      const title = document.createElement('h3');
+      title.textContent = product.nome;
+
+      const description = document.createElement('p');
+      description.className = 'product-desc';
+      description.textContent = product.descricao;
+
+      const foot = document.createElement('div');
+      foot.className = 'product-foot';
+
+      const link = document.createElement('a');
+      link.className = 'button button-primary button-small';
+      link.href = '#contato';
+      link.dataset.whatsapp = 'custom';
+      link.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#icon-whatsapp"></use></svg>Quero esta placa';
+
+      function apply(variant) {
+        current = variant;
+        const sources = imageSources(variant.imagem);
+        img.src = sources.src;
+        img.srcset = sources.srcset;
+        img.alt = `Placa USEGET ${product.nome}${product.variantes.length > 1 ? ` ${variant.nome.toLowerCase()}` : ''}, em acrílico com NFC e QR Code.`;
+        link.dataset.whatsappText = productMessage(product, variant);
+        if (validNumber && link.hasAttribute('href') && link.href.startsWith('https://wa.me')) {
+          link.href = whatsappUrl(link.dataset.whatsappText);
+        }
+      }
+
+      body.append(tag, title, description);
+
+      if (product.variantes.length > 1) {
+        const swatches = document.createElement('div');
+        swatches.className = 'swatches';
+        swatches.setAttribute('role', 'radiogroup');
+        swatches.setAttribute('aria-label', `Cor da placa ${product.nome}`);
+        const label = document.createElement('span');
+        label.className = 'swatch-label';
+
+        product.variantes.forEach((variant, index) => {
+          const swatch = document.createElement('button');
+          swatch.type = 'button';
+          swatch.className = 'swatch';
+          swatch.style.setProperty('--swatch', variant.cor || '#999');
+          swatch.setAttribute('role', 'radio');
+          swatch.setAttribute('aria-checked', String(index === 0));
+          swatch.setAttribute('aria-label', variant.nome);
+          swatch.addEventListener('click', () => {
+            swatches.querySelectorAll('.swatch').forEach((s) => s.setAttribute('aria-checked', String(s === swatch)));
+            label.textContent = variant.nome;
+            media.classList.remove('is-switching');
+            void media.offsetWidth;
+            media.classList.add('is-switching');
+            apply(variant);
+          });
+          swatches.append(swatch);
+        });
+        label.textContent = product.variantes[0].nome;
+        swatches.append(label);
+        body.append(swatches);
+
+        // Preload the other colours so switching is instant.
+        product.variantes.slice(1).forEach((variant) => {
+          const preload = new Image();
+          preload.src = imageSources(variant.imagem).src;
+        });
+      }
+
+      const spec = document.createElement('span');
+      spec.className = 'product-spec';
+      spec.textContent = '10 × 10 cm · NFC + QR Code';
+      foot.append(spec, link);
+      body.append(foot);
+
+      card.append(media, body);
+      grid.append(card);
+      apply(current);
+    });
+
+    // Filters only appear when there is more than one category in use.
+    const used = [...new Set(products.map((p) => p.categoria))];
+    if (!filters || used.length < 2) return;
+    const options = [['todas', 'Todas'], ...used.map((key) => [key, categories[key] || key])];
+    options.forEach(([key, name], index) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'filter-chip';
+      chip.textContent = name;
+      chip.setAttribute('aria-pressed', String(index === 0));
+      chip.addEventListener('click', () => {
+        filters.querySelectorAll('.filter-chip').forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
+        grid.querySelectorAll('.product').forEach((card) => {
+          card.hidden = !(key === 'todas' || card.dataset.category === key);
+        });
+      });
+      filters.append(chip);
+    });
+    filters.hidden = false;
+  }
+
+  // "Como ativar": the clicked option gets the highlight.
+  function configureSetup() {
+    const cards = Array.from(document.querySelectorAll('[data-setup-card]'));
+    if (cards.length < 2) return;
+    function select(card) {
+      cards.forEach((c) => {
+        const active = c === card;
+        c.classList.toggle('is-active', active);
+        c.setAttribute('aria-pressed', String(active));
+      });
+    }
+    cards.forEach((card) => {
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('aria-pressed', String(card.classList.contains('is-active')));
+      card.addEventListener('click', () => select(card));
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          select(card);
+        }
+      });
+    });
+  }
+
+  function configureFloatingButton() {
+    const button = document.querySelector('.floating-whatsapp');
+    const hero = document.querySelector('.hero');
+    const contact = document.getElementById('contato');
+    if (!button || !hero || !('IntersectionObserver' in window)) return;
+    let heroVisible = true;
+    let contactVisible = false;
+    const update = () => button.classList.toggle('is-visible', !heroVisible && !contactVisible);
+    new IntersectionObserver(([entry]) => { heroVisible = entry.isIntersecting; update(); }).observe(hero);
+    if (contact) new IntersectionObserver(([entry]) => { contactVisible = entry.isIntersecting; update(); }).observe(contact);
+  }
+
+  function configureContact() {
     document.querySelectorAll('[data-whatsapp]').forEach((link) => {
-      const message = WHATSAPP_MESSAGES[link.dataset.whatsapp];
+      const message = link.dataset.whatsapp === 'custom' ? link.dataset.whatsappText : WHATSAPP_MESSAGES[link.dataset.whatsapp];
       if (!validNumber || !message) {
         link.removeAttribute('href');
         link.removeAttribute('target');
@@ -30,7 +215,7 @@
         return;
       }
 
-      link.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+      link.href = whatsappUrl(message);
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.removeAttribute('aria-disabled');
